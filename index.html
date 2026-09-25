@@ -3,34 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Колесо Фортуны</title>
+    <title>Колесо Фортуны с Выводом</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: #121212; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow-x: hidden; }
-        h1 { margin-bottom: 10px; color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.3); font-size: 26px; text-align: center; }
-        p { color: #888; margin-bottom: 30px; font-size: 14px; text-align: center; }
-        .wheel-container { position: relative; width: 320px; height: 320px; margin-bottom: 30px; }
-        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff0055; z-index: 10; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5)); }
-        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 8px solid #1e1e1e; box-shadow: 0 0 20px rgba(0,255,136,0.2), inset 0 0 15px rgba(0,0,0,0.6); background: conic-gradient(#222 0deg 45deg, #2a2a2a 45deg 90deg, #222 90deg 135deg, #2a2a2a 135deg 180deg, #222 180deg 225deg, #2a2a2a 225deg 270deg, #222 270deg 315deg, #2a2a2a 315deg 360deg); position: relative; transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1); overflow: hidden; }
-        .sector { position: absolute; width: 50%; height: 50%; top: 0; left: 50%; transform-origin: 0% 100%; display: flex; align-items: flex-start; justify-content: center; padding-top: 20px; font-weight: bold; font-size: 14px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        body { background: #121212; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; overflow-x: hidden; }
+        
+        /* Панель баланса и пользователя */
+        .user-panel { background: #1e1e1e; border: 1px solid #333; padding: 15px; border-radius: 12px; width: 100%; max-width: 340px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .balance-title { font-size: 12px; color: #888; }
+        .balance-value { font-size: 20px; font-weight: bold; color: #00ff88; }
+        .panel-btns button { background: #333; color: #fff; border: 1px solid #444; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-left: 5px; }
+        .panel-btns .deposit-btn { background: #00ff88; color: #000; border: none; }
+
+        h1 { margin-bottom: 5px; color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.3); font-size: 24px; text-align: center; }
+        .price-tag { color: #888; margin-bottom: 20px; font-size: 13px; }
+        
+        /* Колесо */
+        .wheel-container { position: relative; width: 320px; height: 320px; margin-bottom: 20px; }
+        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff0055; z-index: 10; }
+        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 8px solid #1e1e1e; box-shadow: 0 0 20px rgba(0,255,136,0.2); background: conic-gradient(#222 0deg 45deg, #2a2a2a 45deg 90deg, #222 90deg 135deg, #2a2a2a 135deg 180deg, #222 180deg 225deg, #2a2a2a 225deg 270deg, #222 270deg 315deg, #2a2a2a 315deg 360deg); position: relative; transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1); overflow: hidden; }
+        .sector { position: absolute; width: 50%; height: 50%; top: 0; left: 50%; transform-origin: 0% 100%; display: flex; align-items: flex-start; justify-content: center; padding-top: 20px; font-weight: bold; font-size: 14px; }
         .sector:nth-child(even) { color: #00ff88; }
-        .spin-btn { background: linear-gradient(135deg, #00ff88, #00b35f); color: #000; font-size: 18px; font-weight: bold; border: none; padding: 15px 40px; border-radius: 30px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,255,136,0.4); transition: 0.2s; }
-        .spin-btn:disabled { background: #333; color: #666; box-shadow: none; cursor: not-allowed; }
-        .win-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e1e1e; border: 2px solid #00ff88; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 2000; width: 280px; }
-        .win-popup h3 { color: #00ff88; margin-bottom: 10px; }
-        .win-popup button { background: #fff; color: #000; border: none; padding: 8px 20px; font-weight: bold; border-radius: 5px; margin-top: 15px; cursor: pointer; }
-        .admin-btn { position: fixed; bottom: 15px; right: 15px; background: #222; color: #444; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); padding: 20px; overflow-y: auto; z-index: 3000; }
-        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 450px; margin: 20px auto; }
-        input, select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 5px; margin: 5px 0 15px; }
-        .save-btn { width: 100%; background: #00ff88; color: #000; font-weight: bold; padding: 12px; border: none; border-radius: 5px; }
-        .close-btn { background: #ff0055; color: #fff; padding: 5px 10px; border: none; float: right; }
+        
+        .spin-btn { background: linear-gradient(135deg, #00ff88, #00b35f); color: #000; font-size: 18px; font-weight: bold; border: none; padding: 12px 40px; border-radius: 30px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,255,136,0.3); }
+        .spin-btn:disabled { background: #333; color: #666; box-shadow: none; }
+
+        /* Окна (Попапы) */
+        .win-popup, .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e1e1e; border: 2px solid #00ff88; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 2000; width: 300px; }
+        .modal { width: 90%; max-width: 400px; max-height: 85vh; overflow-y: auto; text-align: left; }
+        .modal h2 { color: #00ff88; margin-bottom: 15px; text-align: center; }
+        
+        input, select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 6px; margin: 5px 0 15px; }
+        .action-btn { width: 100%; background: #00ff88; color: #000; font-weight: bold; padding: 12px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+        .close-btn { background: #ff0055; color: #fff; padding: 4px 8px; border: none; float: right; font-size: 12px; border-radius: 4px; cursor: pointer; }
+        
+        .admin-btn { position: fixed; bottom: 10px; right: 10px; background: #222; color: #444; border: none; padding: 6px 10px; border-radius: 4px; font-size: 10px; }
+        .request-item { background: #252525; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #ff0055; font-size: 13px; }
     </style>
 </head>
 <body>
 
-    <h1>Испытай свою удачу!</h1>
-    <p>Крути колесо и выигрывай реальные призы</p>
+    <!-- Панель игрока -->
+    <div class="user-panel">
+        <div>
+            <div class="balance-title">Ваш баланс:</div>
+            <div class="balance-value"><span id="userBalance">0</span> ₽</div>
+        </div>
+        <div class="panel-btns">
+            <button class="deposit-btn" onclick="openModal('depositModal')">Пополнить</button>
+            <button onclick="openModal('withdrawModal')">Вывод</button>
+        </div>
+    </div>
+
+    <h1>Колесо Фортуны</h1>
+    <div class="price-tag">Стоимость одного вращения: <b>100 ₽</b></div>
 
     <div class="wheel-container">
         <div class="pointer"></div>
@@ -48,93 +74,79 @@
 
     <button class="spin-btn" id="spinBtn" onclick="spinWheel()">КРУТИТЬ</button>
 
+    <!-- Окно выигрыша -->
     <div class="win-popup" id="winPopup">
-        <h3>Поздравляем!</h3>
-        <p id="winText">Вы выиграли 0 ₽</p>
-        <button onclick="closePopup()">Отлично</button>
+        <h3 style="color:#00ff88; margin-bottom:10px;">Выигрыш!</h3>
+        <p id="winText" style="font-size:18px; font-weight:bold; margin-bottom:15px;">Вы выиграли 0 ₽</p>
+        <button onclick="closeWinPopup()" style="background:#fff; color:#000; border:none; padding:8px 20px; font-weight:bold; border-radius:5px;">Забрать</button>
+    </div>
+
+    <!-- Модалка: Пополнение баланса -->
+    <div class="modal" id="depositModal">
+        <button class="close-btn" onclick="closeModal('depositModal')">Х</button>
+        <h2>Пополнение баланса</h2>
+        <p style="color:#aaa; font-size:13px; margin-bottom:15px;">После оплаты ваш баланс будет зачислен автоматически администратором.</p>
+        <label>Сумма пополнения (₽):</label>
+        <input type="number" id="depositAmount" value="100" min="50">
+        
+        <!-- Кнопка ведет на твою карту/кошелек. Можно заменить ссылку на ЮMoney/FKWallet -->
+        <button class="action-btn" onclick="processDeposit()">Перейти к оплате</button>
+    </div>
+
+    <!-- Модалка: Вывод средств -->
+    <div class="modal" id="withdrawModal">
+        <button class="close-btn" onclick="closeModal('withdrawModal')">Х</button>
+        <h2>Вывод средств</h2>
+        <label>Сумма вывода (₽):</label>
+        <input type="number" id="withdrawAmount" placeholder="Минимум 100">
+        <label>Реквизиты (Номер карты / Киви / ЮMoney):</label>
+        <input type="text" id="withdrawWallet" placeholder="42760000...">
+        <button class="action-btn" onclick="processWithdraw()">Создать заявку</button>
+    </div>
+
+    <!-- Модалка: Админка (Панель Управления) -->
+    <div class="modal" id="adminModal">
+        <button class="close-btn" onclick="closeModal('adminModal')">Х</button>
+        <h2>Панель Администратора</h2>
+        
+        <label>Подкрутка для следующего спина:</label>
+        <select id="forcedResult">
+            <option value="-1">Случайно (Честная игра)</option>
+            <option value="0">10 рублей</option>
+            <option value="1">50 рублей</option>
+            <option value="2">100 рублей</option>
+            <option value="3">500 рублей</option>
+            <option value="4">1 000 рублей</option>
+            <option value="5">2 500 рублей</option>
+            <option value="6">5 000 рублей</option>
+            <option value="7">10 000 рублей</option>
+        </select>
+        <button class="action-btn" onclick="saveAdminSettings()" style="margin-bottom:20px; background:#00bc62;">Сохранить подкрутку</button>
+        
+        <h3>Заявки на вывод средств:</h3>
+        <div id="withdrawalRequestsList" style="margin-top:10px;">Нет активных заявок.</div>
     </div>
 
     <button class="admin-btn" onclick="openAdmin()">Панель управления</button>
 
-    <div class="modal" id="adminModal">
-        <div class="modal-content">
-            <button class="close-btn" onclick="closeAdmin()">Закрыть</button>
-            <h2 style="color:#00ff88;margin-bottom:20px;">Настройка выигрыша</h2>
-            
-            <label>Что ДОЛЖЕН выиграть следующий игрок?</label>
-            <select id="forcedResult">
-                <option value="-1">Случайно (Честная игра)</option>
-                <option value="0">10 рублей</option>
-                <option value="1">50 рублей</option>
-                <option value="2">100 рублей</option>
-                <option value="3">500 рублей</option>
-                <option value="4">1 000 рублей</option>
-                <option value="5">2 500 рублей</option>
-                <option value="6">5 000 рублей</option>
-                <option value="7">10 000 рублей</option>
-            </select>
-            
-            <button class="save-btn" onclick="saveAdminSettings()">Сохранить настройки</button>
-        </div>
-    </div>
-
     <script>
         const prizes = ["10 ₽", "10 000 ₽", "5 000 ₽", "2 500 ₽", "1 000 ₽", "500 ₽", "100 ₽", "50 ₽"];
+        const prizeValues =;
+        const SPIN_COST = 100;
+
         let isSpinning = false;
+        
+        // Загрузка данных пользователя и админки
+        let balance = parseInt(localStorage.getItem('user_balance')) || 500; // Изначально даем 500р для теста
         let forcedWin = localStorage.getItem('forced_win') || "-1";
+        let withdrawRequests = JSON.parse(localStorage.getItem('withdraw_requests')) || [];
 
-        function spinWheel() {
-            if (isSpinning) return;
-            isSpinning = true;
-            document.getElementById('spinBtn').disabled = true;
-
-            const wheel = document.getElementById('wheel');
-            let targetSector;
-
-            const selectorToPrizeIndex = { 0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1 };
-
-            if (forcedWin !== "-1") {
-                targetSector = selectorToPrizeIndex[parseInt(forcedWin)];
-            } else {
-                targetSector = Math.floor(Math.random() * 8);
-            }
-
-            const sectorDegrees = 45;
-            const targetDegrees = 1800 + (targetSector * sectorDegrees) + 22.5; 
-
-            wheel.style.transition = 'transform 4s cubic-bezier(0.1, 0.8, 0.1, 1)';
-            wheel.style.transform = `rotate(${targetDegrees}deg)`;
-
-            setTimeout(() => {
-                document.getElementById('winText').innerText = `Вы выиграли ${prizes[targetSector]}!`;
-                document.getElementById('winPopup').style.display = 'block';
-            }, 4000); 
+        function updateBalanceUI() {
+            document.getElementById('userBalance').innerText = balance;
+            localStorage.setItem('user_balance', balance);
         }
+        updateBalanceUI();
 
-        function closePopup() {
-            document.getElementById('winPopup').style.display = 'none';
-            document.getElementById('wheel').style.transition = 'none';
-            document.getElementById('wheel').style.transform = 'rotate(0deg)';
-            setTimeout(() => {
-                isSpinning = false;
-                document.getElementById('spinBtn').disabled = false;
-            }, 50);
-        }
+        function openModal(id) { document.getElementById(id).style.display = 'block'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        function openAdmin() {
-            if (prompt("Введите пароль:") !== "112233") return alert("Неверно!");
-            document.getElementById('adminModal').style.display = 'block';
-            document.getElementById('forcedResult').value = forcedWin;
-        }
-        
-        function closeAdmin() { document.getElementById('adminModal').style.display = 'none'; }
-        
-        function saveAdminSettings() {
-            forcedWin = document.getElementById('forcedResult').value;
-            localStorage.setItem('forced_win', forcedWin);
-            closeAdmin();
-            alert("Настройки успешно применены!");
-        }
-    </script>
-</body>
-</html>
