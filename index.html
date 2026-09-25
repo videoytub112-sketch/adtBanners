@@ -1,7 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Колесо Фортуны</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #121212; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        h1 { margin-bottom: 10px; color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.3); font-size: 26px; text-align: center; }
+        p { color: #888; margin-bottom: 30px; font-size: 14px; text-align: center; }
+        .wheel-container { position: relative; width: 320px; height: 320px; margin-bottom: 30px; }
+        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff0055; z-index: 10; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5)); }
+        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 8px solid #1e1e1e; box-shadow: 0 0 20px rgba(0,255,136,0.2), inset 0 0 15px rgba(0,0,0,0.6); background: conic-gradient(#222 0deg 45deg, #2a2a2a 45deg 90deg, #222 90deg 135deg, #2a2a2a 135deg 180deg, #222 180deg 225deg, #2a2a2a 225deg 270deg, #222 270deg 315deg, #2a2a2a 315deg 360deg); position: relative; transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1); overflow: hidden; }
+        .sector { position: absolute; width: 50%; height: 50%; top: 0; left: 50%; transform-origin: 0% 100%; display: flex; align-items: flex-start; justify-content: center; padding-top: 20px; font-weight: bold; font-size: 14px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        .sector:nth-child(even) { color: #00ff88; }
+        .spin-btn { background: linear-gradient(135deg, #00ff88, #00b35f); color: #000; font-size: 18px; font-weight: bold; border: none; padding: 15px 40px; border-radius: 30px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,255,136,0.4); transition: 0.2s; }
+        .spin-btn:disabled { background: #333; color: #666; box-shadow: none; cursor: not-allowed; }
+        .win-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e1e1e; border: 2px solid #00ff88; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 2000; width: 280px; }
+        .win-popup h3 { color: #00ff88; margin-bottom: 10px; }
+        .win-popup button { background: #fff; color: #000; border: none; padding: 8px 20px; font-weight: bold; border-radius: 5px; margin-top: 15px; cursor: pointer; }
+        .admin-btn { position: fixed; bottom: 15px; right: 15px; background: #222; color: #444; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); padding: 20px; overflow-y: auto; z-index: 3000; }
+        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 450px; margin: 20px auto; }
+        input, select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 5px; margin: 5px 0 15px; }
+        .save-btn { width: 100%; background: #00ff88; color: #000; font-weight: bold; padding: 12px; border: none; border-radius: 5px; }
+        .close-btn { background: #ff0055; color: #fff; padding: 5px 10px; border: none; float: right; }
+    </style>
+</head>
+<body>
+
+    <h1>Испытай свою удачу!</h1>
+    <p>Крути колесо и выигрывай реальные призы</p>
+
+    <div class="wheel-container">
+        <div class="pointer"></div>
+        <div class="wheel" id="wheel">
+            <div class="sector" style="transform: rotate(0deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">10 ₽</span></div>
+            <div class="sector" style="transform: rotate(45deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">50 ₽</span></div>
+            <div class="sector" style="transform: rotate(90deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">100 ₽</span></div>
+            <div class="sector" style="transform: rotate(135deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">500 ₽</span></div>
+            <div class="sector" style="transform: rotate(180deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">1 000 ₽</span></div>
+            <div class="sector" style="transform: rotate(225deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">2 500 ₽</span></div>
+            <div class="sector" style="transform: rotate(270deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">5 000 ₽</span></div>
+            <div class="sector" style="transform: rotate(315deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">10 000 ₽</span></div>
+        </div>
+    </div>
+
+    <button class="spin-btn" id="spinBtn" onclick="spinWheel()">КРУТИТЬ</button>
+
+    <div class="win-popup" id="winPopup">
+        <h3>Поздравляем!</h3>
+        <p id="winText">Вы выиграли 0 ₽</p>
+        <button onclick="closePopup()">Отлично</button>
+    </div>
+
+    <button class="admin-btn" onclick="openAdmin()">Панель управления</button>
+
+    <div class="modal" id="adminModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeAdmin()">Закрыть</button>
+            <h2 style="color:#00ff88;margin-bottom:20px;">Настройка выигрыша</h2>
+            
+            <label>Что ДОЛЖЕН выиграть следующий игрок?</label>
+            <select id="forcedResult">
+                <option value="-1">Случайно (Честная игра)</option>
+                <option value="0">10 рублей</option>
+                <option value="1">50 рублей</option>
+                <option value="2">100 рублей</option>
+                <option value="3">500 рублей</option>
+                <option value="4">1 000 рублей</option>
+                <option value="5">2 500 рублей</option>
+                <option value="6">5 000 рублей</option>
+                <option value="7">10 000 рублей</option>
+            </select>
+            
+            <button class="save-btn" onclick="saveAdminSettings()">Сохранить настройки</button>
+        </div>
+    </div>
+
     <script>
-        // Массив секторов колеса (по порядку против часовой стрелки для точного расчета)
         const prizes = ["10 ₽", "10 000 ₽", "5 000 ₽", "2 500 ₽", "1 000 ₽", "500 ₽", "100 ₽", "50 ₽"];
-        
         let isSpinning = false;
         let forcedWin = localStorage.getItem('forced_win') || "-1";
 
@@ -13,36 +91,21 @@
             const wheel = document.getElementById('wheel');
             let targetSector;
 
-            // Карта перевода индексов из админки в реальные сектора колеса
-            const selectorToPrizeIndex = {
-                0: 0, // 10 р -> 10 р
-                1: 7, // 50 р -> 50 р
-                2: 6, // 100 р -> 100 р
-                3: 5, // 500 р -> 500 р
-                4: 4, // 1000 р -> 1000 р
-                5: 3, // 2500 р -> 2500 р
-                6: 2, // 5000 р -> 5000 р
-                7: 1  // 10000 р -> 10000 р
-            };
+            const selectorToPrizeIndex = { 0: 0, 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1 };
 
-            // Если в админке выбрана подкрутка
             if (forcedWin !== "-1") {
                 targetSector = selectorToPrizeIndex[parseInt(forcedWin)];
             } else {
-                // Иначе выбираем абсолютно случайно
                 targetSector = Math.floor(Math.random() * 8);
             }
 
-            // Расчет угла вращения (каждый сектор по 45 градусов)
             const sectorDegrees = 45;
             const targetDegrees = 1800 + (targetSector * sectorDegrees) + 22.5; 
 
-            // Запускаем вращение через CSS
             wheel.style.transition = 'transform 4s cubic-bezier(0.1, 0.8, 0.1, 1)';
             wheel.style.transform = `rotate(${targetDegrees}deg)`;
 
             setTimeout(() => {
-                // Выводим результат выигрыша
                 document.getElementById('winText').innerText = `Вы выиграли ${prizes[targetSector]}!`;
                 document.getElementById('winPopup').style.display = 'block';
             }, 4000); 
@@ -58,16 +121,13 @@
             }, 50);
         }
 
-        // Функции скрытой мобильной админки
         function openAdmin() {
             if (prompt("Введите пароль:") !== "112233") return alert("Неверно!");
             document.getElementById('adminModal').style.display = 'block';
             document.getElementById('forcedResult').value = forcedWin;
         }
         
-        function closeAdmin() { 
-            document.getElementById('adminModal').style.display = 'none'; 
-        }
+        function closeAdmin() { document.getElementById('adminModal').style.display = 'none'; }
         
         function saveAdminSettings() {
             forcedWin = document.getElementById('forcedResult').value;
@@ -75,10 +135,6 @@
             closeAdmin();
             alert("Настройки успешно применены!");
         }
-        
-        // Первичный запуск сайта
-        renderSite();
-        
-        // Заглушка, чтобы старый код отрисовки не выдавал ошибок
-        function renderSite() {}
     </script>
+</body>
+</html>
