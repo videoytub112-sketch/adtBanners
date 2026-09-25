@@ -3,93 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Рекламная Площадка</title>
+    <title>Колесо Фортуны</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: #121212; color: #fff; padding: 20px; text-align: center; }
-        h1 { margin: 20px 0; color: #00ff88; font-size: 24px; }
-        .banner-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
-        .banner-slot { background: #1e1e1e; border: 2px dashed #333; border-radius: 12px; overflow: hidden; min-height: 220px; display: flex; align-items: center; justify-content: center; }
-        .banner-link { display: block; width: 100%; height: 100%; }
-        .banner-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .empty-slot { color: #666; font-size: 16px; text-decoration: none; padding: 20px; }
-        .admin-btn { position: fixed; bottom: 15px; right: 15px; background: #222; color: #555; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); padding: 20px; overflow-y: auto; z-index: 1000; }
-        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 500px; margin: 40px auto; text-align: left; }
-        .slot-form { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        label { display: block; margin: 10px 0 5px; font-size: 14px; color: #aaa; }
-        input, select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 5px; }
-        .save-all-btn { width: 100%; background: #00ff88; color: #000; font-weight: bold; padding: 12px; border: none; border-radius: 5px; margin-top: 10px; }
+        body { background: #121212; color: #fff; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+        h1 { margin-bottom: 10px; color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.3); font-size: 26px; text-align: center; }
+        p { color: #888; margin-bottom: 30px; font-size: 14px; text-align: center; }
+        
+        /* Контейнер колеса */
+        .wheel-container { position: relative; width: 320px; height: 320px; margin-bottom: 30px; }
+        
+        /* Маркер (стрелочка сверху) */
+        .pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ff0055; z-index: 10; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5)); }
+        
+        /* Крутящаяся часть */
+        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 8px solid #1e1e1e; box-shadow: 0 0 20px rgba(0,255,136,0.2), inset 0 0 15px rgba(0,0,0,0.6); background: conic-gradient(#222 0deg 45deg, #2a2a2a 45deg 90deg, #222 90deg 135deg, #2a2a2a 135deg 180deg, #222 180deg 225deg, #2a2a2a 225deg 270deg, #222 270deg 315deg, #2a2a2a 315deg 360deg); position: relative; transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1); overflow: hidden; }
+        
+        /* Текст внутри секторов */
+        .sector { position: absolute; width: 50%; height: 50%; top: 0; left: 50%; transform-origin: 0% 100%; display: flex; align-items: flex-start; justify-content: center; padding-top: 20px; font-weight: bold; font-size: 14px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+        .sector:nth-child(even) { color: #00ff88; }
+        
+        /* Стили кнопок */
+        .spin-btn { background: linear-gradient(135deg, #00ff88, #00b35f); color: #000; font-size: 18px; font-weight: bold; border: none; padding: 15px 40px; border-radius: 30px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,255,136,0.4); transition: 0.2s; }
+        .spin-btn:active { transform: scale(0.95); box-shadow: 0 2px 5px rgba(0,255,136,0.4); }
+        .spin-btn:disabled { background: #333; color: #666; box-shadow: none; cursor: not-allowed; }
+
+        /* Окно выигрыша */
+        .win-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1e1e1e; border: 2px solid #00ff88; padding: 25px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 2000; width: 280px; animation: pop 0.3s ease; }
+        @keyframes pop { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        .win-popup h3 { color: #00ff88; margin-bottom: 10px; }
+        .win-popup button { background: #fff; color: #000; border: none; padding: 8px 20px; font-weight: bold; border-radius: 5px; margin-top: 15px; cursor: pointer; }
+
+        /* Кнопка Админки */
+        .admin-btn { position: fixed; bottom: 15px; right: 15px; background: #222; color: #444; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; }
+        
+        /* Модальное окно админки */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); padding: 20px; overflow-y: auto; z-index: 3000; }
+        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 450px; margin: 20px auto; }
+        input, select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 5px; margin: 5px 0 15px; }
+        .save-btn { width: 100%; background: #00ff88; color: #000; font-weight: bold; padding: 12px; border: none; border-radius: 5px; }
         .close-btn { background: #ff0055; color: #fff; padding: 5px 10px; border: none; float: right; }
     </style>
 </head>
 <body>
-    <h1>🔥 Актуальные Предложения</h1>
-    <div class="banner-grid" id="bannerGrid"></div>
+
+    <h1>Испытай свою удачу!</h1>
+    <p>Крути колесо и выигрывай реальные призы</p>
+
+    <div class="wheel-container">
+        <div class="pointer"></div>
+        <div class="wheel" id="wheel">
+            <!-- Сектора с суммами -->
+            <div class="sector" style="transform: rotate(0deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">10 ₽</span></div>
+            <div class="sector" style="transform: rotate(45deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">50 ₽</span></div>
+            <div class="sector" style="transform: rotate(90deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">100 ₽</span></div>
+            <div class="sector" style="transform: rotate(135deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">500 ₽</span></div>
+            <div class="sector" style="transform: rotate(180deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">1 000 ₽</span></div>
+            <div class="sector" style="transform: rotate(225deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">2 500 ₽</span></div>
+            <div class="sector" style="transform: rotate(270deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">5 000 ₽</span></div>
+            <div class="sector" style="transform: rotate(315deg) skewY(45deg);"><span style="transform: skewY(-45deg) rotate(22.5deg);">10 000 ₽</span></div>
+        </div>
+    </div>
+
+    <button class="spin-btn" id="spinBtn" onclick="spinWheel()">КРУТИТЬ</button>
+
+    <!-- Окно выигрыша -->
+    <div class="win-popup" id="winPopup">
+        <h3>Поздравляем!</h3>
+        <p id="winText">Вы выиграли 0 ₽</p>
+        <button onclick="closePopup()">Отлично</button>
+    </div>
+
+    <!-- Кнопка админки -->
     <button class="admin-btn" onclick="openAdmin()">Панель управления</button>
+
+    <!-- Окно настроек подкрутки -->
     <div class="modal" id="adminModal">
         <div class="modal-content">
             <button class="close-btn" onclick="closeAdmin()">Закрыть</button>
-            <h2 style="color:#00ff88;margin-bottom:20px;">Админ-панель</h2>
-            <div id="adminForms"></div>
-            <button class="save-all-btn" onclick="saveBannersData()">Применить изменения</button>
+            <h2 style="color:#00ff88;margin-bottom:20px;">Настройка выигрыша</h2>
+            
+            <label>Что ДОЛЖЕН выиграть следующий игрок?</label>
+            <select id="forcedResult">
+                <option value="-1">Случайно (Честная игра)</option>
+                <option value="0">10 рублей</option>
+                <option value="1">50 рублей</option>
+                <option value="2">100 рублей</option>
+                <option value="3">500 рублей</option>
+                <option value="4">1 000 рублей</option>
+                <option value="5">2 500 рублей</option>
+                <option value="6">5 000 рублей</option>
+                <option value="7">10 000 рублей</option>
+            </select>
+            
+            <button class="save-btn" onclick="saveAdminSettings()">Сохранить настройки</button>
         </div>
     </div>
+
     <script>
-        const defaultBanners = [
-            { id: 1, img: "https://unsplash.com", link: "https://t.me", active: "true" },
-            { id: 2, img: "", link: "https://t.me", active: "false" },
-            { id: 3, img: "", link: "https://t.me", active: "false" }
-        ];
-        let banners = JSON.parse(localStorage.getItem('my_banners_data')) || defaultBanners;
-        function renderSite() {
-            const grid = document.getElementById('bannerGrid');
-            grid.innerHTML = '';
-            banners.forEach(b => {
-                const slot = document.createElement('div');
-                slot.className = 'banner-slot';
-                if (b.active === "true" && b.img) {
-                    slot.innerHTML = `<a href="${b.link}" target="_blank" class="banner-link"><img src="${b.img}" class="banner-img"></a>`;
-                } else {
-                    slot.innerHTML = `<a href="${b.link}" target="_blank" class="empty-slot">📢 Место свободно.<br>Разместить рекламу.</a>`;
-                }
-                grid.appendChild(slot);
-            });
+        // Массив секторов колеса (по порядку против часовой стрелки для точного расчета)
+        const prizes = ["10 ₽", "10 000 ₽", "5 000 ₽", "2 500 ₽", "1 000 ₽", "500 ₽", "100 ₽", "50 ₽"];
+        
+        let isSpinning = false;
+        let forcedWin = localStorage.getItem('forced_win') || "-1";
+
+        function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+
+            const wheel = document.getElementById('wheel');
+            let targetSector;
+
+            // Если в админке выбрана подкрутка
+            if (forcedWin !== "-1") {
+                // Переводим индекс из селектора в индекс массива призов
+                const selectorToPrizeIndex =;
+                targetSector = selectorToPrizeIndex[parseInt(forcedWin)];
+            } else {
+                // Иначе выбираем абсолютно случайно
+                targetSector = Math.floor(Math.random() * 8);
+            }
+
+            // Расчет угла: 360 / 8 секторов = 45 градусов на один сектор
+            // Добавляем минимум 5 полных оборотов (1800 градусов) для красоты
+            const sectorDegrees = 45;
+            const targetDegrees = 1800 + (targetSector * sectorDegrees) + 22.5; // +22.5 чтобы стрелка била в середину сектора
+
+            wheel.style.transform = `rotate(${targetDegrees}deg)`;
+
+            setTimeout(() => {
+                // Выводим результат
+                document.getElementById('winText').innerText = `Вы выиграли ${prizes[targetSector]}!`;
+                document.getElementById('winPopup').style.display = 'block';
+            }, 4000); // 4 секунды длится анимация вращения
         }
+
+        function closePopup() {
+            document.getElementById('winPopup').style.display = 'none';
+            document.getElementById('wheel').style.transition = 'none';
+            document.getElementById('wheel').style.transform = 'rotate(0deg)';
+            setTimeout(() => {
+                document.getElementById('wheel').style.transition = 'transform 4s cubic-bezier(0.1, 0.8, 0.1, 1)';
+                isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+            }, 50);
+        }
+
+        // Функции скрытой админки
         function openAdmin() {
-            if (prompt("Пароль:") !== "112233") return alert("Неверно!");
+            if (prompt("Введите пароль:") !== "112233") return alert("Неверно!");
             document.getElementById('adminModal').style.display = 'block';
-            const container = document.getElementById('adminForms');
-            container.innerHTML = '';
-            banners.forEach(b => {
-                container.innerHTML += `
-                    <div class="slot-form" data-id="${b.id}">
-                        <h3>Баннер №${b.id}</h3>
-                        <label>Ссылка на картинку:</label>
-                        <input type="text" class="inp-img" value="${b.img}">
-                        <label>Ссылка для перехода:</label>
-                        <input type="text" class="inp-link" value="${b.link}">
-                        <label>Статус:</label>
-                        <select class="inp-active">
-                            <option value="true" ${b.active === "true" ? 'selected' : ''}>Показать</option>
-                            <option value="false" ${b.active === "false" ? 'selected' : ''}>Свободно</option>
-                        </select>
-                    </div>`;
-            });
+            document.getElementById('forcedResult').value = forcedWin;
         }
         function closeAdmin() { document.getElementById('adminModal').style.display = 'none'; }
-        function saveBannersData() {
-            const forms = document.querySelectorAll('.slot-form');
-            banners = Array.from(forms).map(form => ({
-                id: parseInt(form.dataset.id),
-                img: form.querySelector('.inp-img').value,
-                link: form.querySelector('.inp-link').value,
-                active: form.querySelector('.inp-active').value
-            }));
-            localStorage.setItem('my_banners_data', JSON.stringify(banners));
-            renderSite(); closeAdmin(); alert("Готово!");
-        }
-        renderSite();
-    </script>
-</body>
-</html>
+        function saveAdminSettings() {
+            forcedWin = document.getElementById('forcedResult').value;
