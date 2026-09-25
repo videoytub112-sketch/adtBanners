@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рекламная Площадка</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #121212; color: #fff; padding: 20px; text-align: center; }
+        h1 { margin: 20px 0; color: #00ff88; font-size: 24px; }
+        .banner-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+        .banner-slot { background: #1e1e1e; border: 2px dashed #333; border-radius: 12px; overflow: hidden; min-height: 220px; display: flex; align-items: center; justify-content: center; }
+        .banner-link { display: block; width: 100%; height: 100%; }
+        .banner-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .empty-slot { color: #666; font-size: 16px; text-decoration: none; padding: 20px; }
+        .admin-btn { position: fixed; bottom: 15px; right: 15px; background: #222; color: #555; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); padding: 20px; overflow-y: auto; z-index: 1000; }
+        .modal-content { background: #1e1e1e; padding: 20px; border-radius: 10px; max-width: 500px; margin: 40px auto; text-align: left; }
+        .slot-form { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        label { display: block; margin: 10px 0 5px; font-size: 14px; color: #aaa; }
+        input, select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 5px; }
+        .save-all-btn { width: 100%; background: #00ff88; color: #000; font-weight: bold; padding: 12px; border: none; border-radius: 5px; margin-top: 10px; }
+        .close-btn { background: #ff0055; color: #fff; padding: 5px 10px; border: none; float: right; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Актуальные Предложения</h1>
+    <div class="banner-grid" id="bannerGrid"></div>
+    <button class="admin-btn" onclick="openAdmin()">Панель управления</button>
+    <div class="modal" id="adminModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeAdmin()">Закрыть</button>
+            <h2 style="color:#00ff88;margin-bottom:20px;">Админ-панель</h2>
+            <div id="adminForms"></div>
+            <button class="save-all-btn" onclick="saveBannersData()">Применить изменения</button>
+        </div>
+    </div>
+    <script>
+        const defaultBanners = [
+            { id: 1, img: "https://unsplash.com", link: "https://t.me", active: "true" },
+            { id: 2, img: "", link: "https://t.me", active: "false" },
+            { id: 3, img: "", link: "https://t.me", active: "false" }
+        ];
+        let banners = JSON.parse(localStorage.getItem('my_banners_data')) || defaultBanners;
+        function renderSite() {
+            const grid = document.getElementById('bannerGrid');
+            grid.innerHTML = '';
+            banners.forEach(b => {
+                const slot = document.createElement('div');
+                slot.className = 'banner-slot';
+                if (b.active === "true" && b.img) {
+                    slot.innerHTML = `<a href="${b.link}" target="_blank" class="banner-link"><img src="${b.img}" class="banner-img"></a>`;
+                } else {
+                    slot.innerHTML = `<a href="${b.link}" target="_blank" class="empty-slot">📢 Место свободно.<br>Разместить рекламу.</a>`;
+                }
+                grid.appendChild(slot);
+            });
+        }
+        function openAdmin() {
+            if (prompt("Пароль:") !== "112233") return alert("Неверно!");
+            document.getElementById('adminModal').style.display = 'block';
+            const container = document.getElementById('adminForms');
+            container.innerHTML = '';
+            banners.forEach(b => {
+                container.innerHTML += `
+                    <div class="slot-form" data-id="${b.id}">
+                        <h3>Баннер №${b.id}</h3>
+                        <label>Ссылка на картинку:</label>
+                        <input type="text" class="inp-img" value="${b.img}">
+                        <label>Ссылка для перехода:</label>
+                        <input type="text" class="inp-link" value="${b.link}">
+                        <label>Статус:</label>
+                        <select class="inp-active">
+                            <option value="true" ${b.active === "true" ? 'selected' : ''}>Показать</option>
+                            <option value="false" ${b.active === "false" ? 'selected' : ''}>Свободно</option>
+                        </select>
+                    </div>`;
+            });
+        }
+        function closeAdmin() { document.getElementById('adminModal').style.display = 'none'; }
+        function saveBannersData() {
+            const forms = document.querySelectorAll('.slot-form');
+            banners = Array.from(forms).map(form => ({
+                id: parseInt(form.dataset.id),
+                img: form.querySelector('.inp-img').value,
+                link: form.querySelector('.inp-link').value,
+                active: form.querySelector('.inp-active').value
+            }));
+            localStorage.setItem('my_banners_data', JSON.stringify(banners));
+            renderSite(); closeAdmin(); alert("Готово!");
+        }
+        renderSite();
+    </script>
+</body>
+</html>
