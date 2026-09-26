@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления рекламой GitHub</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f2f5; padding: 20px; }
+        .admin-box { max-width: 700px; background: #fff; margin: 0 auto 30px; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        h2, h3 { color: #2c3e50; margin-bottom: 20px; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; color: #34495e; }
+        input[type="text"], input[type="password"], textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        textarea { height: 90px; font-family: monospace; font-size: 13px; resize: vertical; }
+        button { background-color: #3498db; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: background 0.2s; }
+        button:hover { background-color: #2980b9; }
+        .btn-save { background-color: #2ecc71; }
+        .btn-save:hover { background-color: #27ae60; }
+        .status-msg { margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; display: none; font-weight: bold; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+
+<div class="admin-box">
+    <h3>🔐 1. Настройка подключения к GitHub</h3>
+    <div class="form-group">
+        <label>Имя пользователя (Твой логин на GitHub):</label>
+        <input type="text" id="gh_user" placeholder="Например: ivan_ivanov">
+    </div>
+    <div class="form-group">
+        <label>Имя репозитория (Название папки проекта):</label>
+        <input type="text" id="gh_repo" placeholder="Например: my-advertising-site">
+    </div>
+    <div class="form-group">
+        <label>GitHub Токен (Ключ ghp_...):</label>
+        <input type="password" id="gh_token" placeholder="Вставьте секретный токен сюда">
+    </div>
+    <button onclick="saveCredentials()">Запомнить доступы GitHub</button>
+</div>
+
+<div class="admin-box">
+    <h2>📊 2. Управление рекламными кодами Linkslot</h2>
+    <button onclick="loadFromGitHub()" style="margin-bottom: 20px; background-color: #9b59b6;">🔄 Загрузить текущие коды с GitHub</button>
+    
+    <div class="form-group">
+        <label>Верхний VIP-баннер:</label>
+        <textarea id="vip_code" placeholder="Вставьте код баннера Linkslot..."></textarea>
+    </div>
+    <div class="form-group">
+        <label>Левый блок ссылок:</label>
+        <textarea id="left_links" placeholder="Вставьте код блока ссылок..."></textarea>
+    </div>
+    <div class="form-group">
+        <label>Правый блок ссылок:</label>
+        <textarea id="right_links" placeholder="Вставьте код блока ссылок..."></textarea>
+    </div>
+    <div class="form-group">
+        <label>Основная сетка баннеров (Центр):</label>
+        <textarea id="main_banners" placeholder="Вставьте коды баннеров через пробел..."></textarea>
+    </div>
+
+    <button class="btn-save" onclick="saveToGitHub()">🚀 Сохранить и Опубликовать на сайт</button>
+    <div id="status" class="status-msg"></div>
+</div>
+
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('gh_user').value = localStorage.getItem('gh_user') || '';
+        document.getElementById('gh_repo').value = localStorage.getItem('gh_repo') || '';
+        document.getElementById('gh_token').value = localStorage.getItem('gh_token') || '';
+    });
+
+    function saveCredentials() {
+        localStorage.setItem('gh_user', document.getElementById('gh_user').value.trim());
+        localStorage.setItem('gh_repo', document.getElementById('gh_repo').value.trim());
+        localStorage.setItem('gh_token', document.getElementById('gh_token').value.trim());
+        showStatus('Доступы успешно сохранены в браузере!', 'success');
+    }
+
+    function showStatus(text, type) {
+        const status = document.getElementById('status');
+        status.innerText = text;
+        status.className = `status-msg ${type}`;
+        status.style.display = 'block';
+        if(type === 'success') setTimeout(() => status.style.display = 'none', 4000);
+    }
+
+    async function getFileSha(user, repo, token) {
+        try {
+            let res = await fetch(`https://github.com{user}/${repo}/contents/config.json`, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            if (res.ok) {
+                let data = await res.json();
+                return { sha: data.sha, content: JSON.parse(atob(data.content)) };
+            }
+        } catch (e) {}
+        return { sha: null, content: null };
+    }
+
+    async function loadFromGitHub() {
+        const user = localStorage.getItem('gh_user');
+        const repo = localStorage.getItem('gh_repo');
+        const token = localStorage.getItem('gh_token');
+        if(!user || !repo || !token) return showStatus('Ошибка: Сначала сохраните доступы GitHub!', 'error');
+
+        showStatus('Загрузка данных...', 'success');
+        let { content } = await getFileSha(user, repo, token);
+        if (content) {
+            document.getElementById('vip_code').value = content.vip || '';
+            document.getElementById('left_links').value = content.left || '';
+            document.getElementById('right_links').value = content.right || '';
+            document.getElementById('main_banners').value = content.main || '';
+            showStatus('Текущие настройки успешно загружены!', 'success');
+        } else {
+            showStatus('Файл настроек пуст (это нормально для первого раза).', 'error');
+        }
+    }
+
+    async function saveToGitHub() {
+        const user = localStorage.getItem('gh_user');
+        const repo = localStorage.getItem('gh_repo');
+        const token = localStorage.getItem('gh_token');
+        if(!user || !repo || !token) return showStatus('Ошибка: Заполните настройки подключения к GitHub!', 'error');
+
+        showStatus('Публикация изменений на GitHub...', 'success');
+
+        const configData = {
+            vip: document.getElementById('vip_code').value,
+            left: document.getElementById('left_links').value,
+            right: document.getElementById('right_links').value,
+            main: document.getElementById('main_banners').value
+        };
+
+        let { sha } = await getFileSha(user, repo, token);
+        const jsonString = JSON.stringify(configData, null, 2);
+        const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
+
+        const bodyData = {
+            message: "Обновление баннеров из админки",
+            content: base64Content,
+            branch: "main"
+        };
+        if (sha) bodyData.sha = sha;
+
+        let response = await fetch(`https://github.com{user}/${repo}/contents/config.json`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(bodyData)
+        });
+
+        if (response.ok) {
+            showStatus('🚀 Реклама опубликована! Она появится на сайте в течение 1-2 минут.', 'success');
+        } else {
+            showStatus('Ошибка. Проверьте Токен, Логин и название репозитория.', 'error');
+        }
+    }
+</script>
+</body>
+</html>
