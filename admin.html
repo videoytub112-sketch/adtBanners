@@ -42,7 +42,7 @@
 
 <div class="admin-box">
     <h2>📊 2. Управление рекламными кодами Linkslot</h2>
-    <button onclick="loadFromGitHub()" style="margin-bottom: 20px; background-color: #9b59b6;">🔄 Загрузить текущие коды с GitHub</button>
+    <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 15px;">Заполните нужные поля и нажмите зеленую кнопку для публикации.</p>
     
     <div class="form-group">
         <label>Верхний VIP-баннер:</label>
@@ -61,7 +61,7 @@
         <textarea id="main_banners" placeholder="Вставьте коды баннеров через пробел..."></textarea>
     </div>
 
-    <button class="btn-save" onclick="saveToGitHub()">🚀 Сохранить и Опубликовать на сайт</button>
+    <button class="btn-save" onclick="saveToGitHubForce()">🚀 Сохранить и Опубликовать на сайт</button>
     <div id="status" class="status-msg"></div>
 </div>
 
@@ -84,49 +84,18 @@
         status.innerText = text;
         status.className = `status-msg ${type}`;
         status.style.display = 'block';
-        if(type === 'success') setTimeout(() => status.style.display = 'none', 4000);
+        if(type === 'success') setTimeout(() => status.style.display = 'none', 5000);
     }
 
-    async function getFileSha(user, repo, token) {
-        try {
-            let res = await fetch(`https://github.com{user}/${repo}/contents/config.json`, {
-                headers: { 'Authorization': `token ${token}` }
-            });
-            if (res.ok) {
-                let data = await res.json();
-                return { sha: data.sha, content: JSON.parse(atob(data.content)) };
-            }
-        } catch (e) {}
-        return { sha: null, content: null };
-    }
-
-    async function loadFromGitHub() {
+    async function saveToGitHubForce() {
         const user = localStorage.getItem('gh_user');
         const repo = localStorage.getItem('gh_repo');
         const token = localStorage.getItem('gh_token');
-        if(!user || !repo || !token) return showStatus('Ошибка: Сначала сохраните доступы GitHub!', 'error');
+        if(!user || !repo || !token) return showStatus('Ошибка: Сначала заполните и сохраните доступы GitHub в блоке 1!', 'error');
 
-        showStatus('Загрузка данных...', 'success');
-        let { content } = await getFileSha(user, repo, token);
-        if (content) {
-            document.getElementById('vip_code').value = content.vip || '';
-            document.getElementById('left_links').value = content.left || '';
-            document.getElementById('right_links').value = content.right || '';
-            document.getElementById('main_banners').value = content.main || '';
-            showStatus('Текущие настройки успешно загружены!', 'success');
-        } else {
-            showStatus('Файл настроек пуст (это нормально для первого раза).', 'error');
-        }
-    }
+        showStatus('Принудительное обновление файлов на GitHub... Подождите.', 'success');
 
-    async function saveToGitHub() {
-        const user = localStorage.getItem('gh_user');
-        const repo = localStorage.getItem('gh_repo');
-        const token = localStorage.getItem('gh_token');
-        if(!user || !repo || !token) return showStatus('Ошибка: Заполните настройки подключения к GitHub!', 'error');
-
-        showStatus('Публикация изменений на GitHub...', 'success');
-
+        // Формируем чистый JSON объект из полей
         const configData = {
             vip: document.getElementById('vip_code').value,
             left: document.getElementById('left_links').value,
@@ -134,12 +103,23 @@
             main: document.getElementById('main_banners').value
         };
 
-        let { sha } = await getFileSha(user, repo, token);
+        // Сначала запрашиваем SHA существующего файла, чтобы перезаписать его без ошибок
+        let sha = null;
+        try {
+            let resSha = await fetch(`https://github.com{user}/${repo}/contents/config.json`, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            if (resSha.ok) {
+                let dataSha = await resSha.json();
+                sha = dataSha.sha;
+            }
+        } catch(e) {}
+
         const jsonString = JSON.stringify(configData, null, 2);
         const base64Content = btoa(unescape(encodeURIComponent(jsonString)));
 
         const bodyData = {
-            message: "Обновление баннеров из админки",
+            message: "Принудительная перезапись рекламы из админки",
             content: base64Content,
             branch: "main"
         };
@@ -155,9 +135,9 @@
         });
 
         if (response.ok) {
-            showStatus('🚀 Реклама опубликована! Она появится на сайте в течение 1-2 минут.', 'success');
+            showStatus('🚀 Успех! Админка принудительно очистила файл и опубликовала рекламу. Баннеры появятся на сайте в течение 1-2 минут.', 'success');
         } else {
-            showStatus('Ошибка. Проверьте Токен, Логин и название репозитория.', 'error');
+            showStatus('Ошибка публикации. Убедитесь, что Токен скопирован верно, а логин и имя репозитория правильные.', 'error');
         }
     }
 </script>
